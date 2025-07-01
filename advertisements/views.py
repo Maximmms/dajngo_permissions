@@ -80,10 +80,10 @@ class AdvertisementViewSet(ModelViewSet):
 		if not created:
 			return Response(
 				{'detail':'Объявление уже в избранном'},
-				status = status.HTTP_200_OK
+				status = 200
 			)
 
 		return Response(
 			{'detail':'Объявление добавлено в избранное'},
-			status = status.HTTP_201_CREATED
+			status = 201
 		)
