@@ -25,7 +25,6 @@ class AdvertisementSerializer(serializers.ModelSerializer):
 		fields = ('id', 'title', 'description', 'creator',
 				  'status', 'created_at', 'draft')
 
-
 	def create(self, validated_data):
 		"""Метод для создания"""
 
@@ -41,6 +40,31 @@ class AdvertisementSerializer(serializers.ModelSerializer):
 	def validate(self, data):
 		"""Метод для валидации. Вызывается при создании и обновлении."""
 
-		# TODO: добавьте требуемую валидацию
+		user = self.context["request"].user
+
+		if self.instance is None:
+			open_advs_count = Advertisement.objects.filter(
+				creator = user,
+				status = "OPEN",
+				draft = False
+			).count()
+
+			if open_advs_count >= 10:
+				raise serializers.ValidationError("У пользователя не может быть более 10 активных объявлений")
+
+		else:
+			if 'status' in data and data['status'] != "CLOSED" or \
+					'draft' in data and data['draft'] is False:
+				open_advs_count = Advertisement.objects.filter(
+					creator = user,
+					status = "OPEN",
+					draft = False
+				).count()
+
+			if self.instance.status == 'CLOSED' or self.instance.draft:
+				open_advs_count += 1
+
+			if open_advs_count > 10:
+				raise serializers.ValidationError("У пользователя не может быть более 10 активных объявлений")
 
 		return data
