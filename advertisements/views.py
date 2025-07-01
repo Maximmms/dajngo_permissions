@@ -51,26 +51,22 @@ class AdvertisementViewSet(ModelViewSet):
 		if not user.is_authenticated:
 			return Response({'detail':'Требуется авторизация'}, status = 403)
 
-		# Проверяем наличие обязательных полей
 		try:
 			advertisement_id = request.data['id']
 		except KeyError:
 			return Response({'detail':'Не указан ID объявления'}, status = 400)
 
-		# Получаем объявление
 		try:
 			advertisement = Advertisement.objects.get(id = advertisement_id)
 		except Advertisement.DoesNotExist:
 			return Response({'detail':'Объявление не найдено'}, status = 404)
 
-		# Проверяем, что пользователь не автор объявления
 		if advertisement.creator == user:
 			return Response(
 				{'detail':'Нельзя добавлять в избранное свои объявления'},
 				status = status.HTTP_403_FORBIDDEN
 			)
 
-		# Добавляем в избранное (предполагается, что есть модель Favorite)
 		favorite, created = FavoriteAdvertisement.objects.get_or_create(
 			user = user,
 			advertisement = advertisement
