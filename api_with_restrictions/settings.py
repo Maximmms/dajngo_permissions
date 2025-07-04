@@ -80,10 +80,10 @@ REST_FRAMEWORK = {
 		'rest_framework.throttling.UserRateThrottle',
 	],
 	'DEFAULT_THROTTLE_RATES':{
-		'anon': '10/minute',
-		'user': '20/minute',
+		'anon':'10/minute',
+		'user':'20/minute',
 	},
-	'DEFAULT_FILTER_BACKENDS': [
+	'DEFAULT_FILTER_BACKENDS':[
 		'django_filters.rest_framework.DjangoFilterBackend'
 	]
 }
@@ -96,7 +96,7 @@ WSGI_APPLICATION = 'api_with_restrictions.wsgi.application'
 DATABASES = {
 	'default':{
 		'ENGINE':'django.db.backends.postgresql',
-		'NAME':'ORM_1',
+		'NAME':'ORM_2',
 		'HOST':'127.0.0.1',
 		'PORT':'5432',
 		'USER':'postgres',

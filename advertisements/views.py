@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from advertisements.filters import AdvertisementFilter
-from advertisements.models import Advertisement, FavoriteAdvertisement
-from advertisements.serializers import AdvertisementSerializer
+from advertisements.models import Advertisement, Favorite
+from advertisements.serializers import AdvertisementSerializer, FavoriteSerializer
 from api_with_restrictions.permissions import IsOwnerOrReadOnly
 
 
@@ -18,53 +18,49 @@ class AdvertisementViewSet(ModelViewSet):
 	#   сериализаторов и фильтров
 	queryset = Advertisement.objects.all()
 	serializer_class = AdvertisementSerializer
-	permission_classes = [IsOwnerOrReadOnly]
 	filter_backends = [DjangoFilterBackend]
-	filterset_fields = ['creator']
+	permission_classes = [IsOwnerOrReadOnly]
+	filterset_fields = ['creator', 'status']
 	filterset_class = AdvertisementFilter
 
 	def get_permissions(self):
 		"""Получение прав для действий."""
-		if self.action in ["create", "update", "partial_update", ]:
+		if self.action == "create":
+			return [IsAuthenticated()]
+		if self.action in ["update", "destroy", "partial_update"] and self.request.user == self.get_object().user:
 			return [IsAuthenticated()]
 		return []
 
 	def get_queryset(self):
+		queryset = super().get_queryset()
+
+		if self.request.query_params.get("draft", '').lower() == "true":
+			user = self.request.user
+			if not user.is_authenticated:
+				return queryset.none()
+			return queryset.filter(creator = user, draft = True)
+
 		if self.action == "create":
-			return super().get_queryset().filter(draft = False)
-		return super().get_queryset()
+			return queryset.filter(draft = False)
 
-	@action(detail = False, methods = ['get'])
-	def get_draft(self, request):
-		user = request.user
-
-		if not user.is_authenticated:
-			return Response({'detail':'Требуется авторизация'}, status = 403)
-
-		queryset = self.queryset.filter(creator = user, draft = "True")
-
-		if not queryset.exists():
-			return Response({'detail':'Черновиков не найдено'}, status = 200)
-
-		serializer = self.get_serializer(queryset, many = True)
-		return Response(serializer.data)
+		return queryset
 
 	@action(detail = False, methods = ['post'])
 	def set_favorite(self, request):
 		user = request.user
 
 		if not user.is_authenticated:
-			return Response({'detail':'Требуется авторизация'}, status = 403)
+			return Response({'detail':'Требуется авторизация'}, status = status.HTTP_403_FORBIDDEN)
 
 		try:
 			advertisement_id = request.data['id']
 		except KeyError:
-			return Response({'detail':'Не указан ID объявления'}, status = 400)
+			return Response({'detail':'Не указан ID объявления'}, status = status.HTTP_400_BAD_REQUEST)
 
 		try:
 			advertisement = Advertisement.objects.get(id = advertisement_id)
 		except Advertisement.DoesNotExist:
-			return Response({'detail':'Объявление не найдено'}, status = 404)
+			return Response({'detail':'Объявление не найдено'}, status = status.HTTP_404_NOT_FOUND)
 
 		if advertisement.creator == user:
 			return Response(
@@ -72,7 +68,7 @@ class AdvertisementViewSet(ModelViewSet):
 				status = status.HTTP_403_FORBIDDEN
 			)
 
-		favorite, created = FavoriteAdvertisement.objects.get_or_create(
+		favorite, created = Favorite.objects.get_or_create(
 			user = user,
 			advertisement = advertisement
 		)
@@ -80,10 +76,16 @@ class AdvertisementViewSet(ModelViewSet):
 		if not created:
 			return Response(
 				{'detail':'Объявление уже в избранном'},
-				status = 200
+				status = status.HTTP_200_OK
 			)
 
 		return Response(
 			{'detail':'Объявление добавлено в избранное'},
-			status = 201
+			status = status.HTTP_201_CREATED
 		)
+
+class FavoriteViewSet(ModelViewSet):
+	queryset = Favorite.objects.all()
+	serializer_class = FavoriteSerializer
+	filter_backends = [DjangoFilterBackend]
+	permission_classes = [IsOwnerOrReadOnly]

@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from advertisements.models import Advertisement
+from advertisements.models import Advertisement, Favorite
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -68,3 +68,25 @@ class AdvertisementSerializer(serializers.ModelSerializer):
 				raise serializers.ValidationError("У пользователя не может быть более 10 активных объявлений")
 
 		return data
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Favorite
+		fields = ['advertisement', 'created_at']
+
+	def create(self, validated_data):
+		user = self.context["request"].user
+		advertisement = validated_data["advertisement"]
+
+		validated_data["user"] = self.context["request"].user
+
+		if advertisement.creator == user:
+
+			raise serializers.ValidationError("Пользователь не может добавить свое объявление в избранное")
+
+		if Favorite.objects.filter(user = user, advertisement = advertisement).exists():
+			raise serializers.ValidationError("Пользователь уже добавил данное объявление в избранное")
+
+		validated_data["user"] = user
+		return super().create(validated_data)

@@ -4,4 +4,7 @@
     <option name="sdkName" value="Python 3.13 (api_with_restrictions)" />
   </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13 (api_with_restrictions)" project-jdk-type="Python SDK" />
+  <component name="PythonCompatibilityInspectionAdvertiser">
+    <option name="version" value="3" />
+  </component>
 </project>
