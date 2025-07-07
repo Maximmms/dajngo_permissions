@@ -27,18 +27,26 @@ class AdvertisementViewSet(ModelViewSet):
 		"""Получение прав для действий."""
 		if self.action == "create":
 			return [IsAuthenticated()]
-		if self.action in ["update", "destroy", "partial_update"] and self.request.user == self.get_object().user:
-			return [IsAuthenticated()]
+		if self.action in ["update", "destroy", "partial_update"]:
+			try:
+				if self.request.user == self.get_object().user:
+					return [IsAuthenticated()]
+			except Exception:
+				pass
+			return []
 		return []
 
 	def get_queryset(self):
 		queryset = super().get_queryset()
+		user = self.request.user
 
-		if self.request.query_params.get("draft", '').lower() == "true":
-			user = self.request.user
-			if not user.is_authenticated:
-				return queryset.none()
-			return queryset.filter(creator = user, draft = True)
+		if not user.is_authenticated:
+			return queryset.none()
+
+		draft_param = self.request.query_params.get("draft", "").lower()
+		if draft_param in ("true", "false"):
+			is_draft = draft_param == "true"
+			return queryset.filter(creator = user, draft = is_draft)
 
 		if self.action == "create":
 			return queryset.filter(draft = False)
@@ -83,6 +91,7 @@ class AdvertisementViewSet(ModelViewSet):
 			{'detail':'Объявление добавлено в избранное'},
 			status = status.HTTP_201_CREATED
 		)
+
 
 class FavoriteViewSet(ModelViewSet):
 	queryset = Favorite.objects.all()
