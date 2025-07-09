@@ -28,12 +28,7 @@ class AdvertisementViewSet(ModelViewSet):
 		if self.action == "create":
 			return [IsAuthenticated()]
 		if self.action in ["update", "destroy", "partial_update"]:
-			try:
-				if self.request.user == self.get_object().user:
-					return [IsAuthenticated()]
-			except Exception:
-				pass
-			return []
+			return [IsAuthenticated(), IsOwnerOrReadOnly()]
 		return []
 
 	def get_queryset(self):
